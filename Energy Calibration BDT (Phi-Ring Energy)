@@ -1,0 +1,654 @@
+%matplotlib inline
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt 
+import xgboost as xgb
+from numpy import loadtxt
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_curve, auc, accuracy_score
+from sklearn.metrics import mean_squared_error as MSE
+from progressbar import Bar, ETA, Percentage, ProgressBar, RotatingMarker
+import pickle
+from sklearn.metrics import r2_score as r2
+
+csvpath1 = 'L1T_Jet_MLInputs_2018_SingleMu_PFA2_nVtxlt_20211008 (Mixed PU) (PhiRing).csv' #This file is available in the following link
+# /afs/cern.ch/user/s/syhasan/public/data_files/L1T_Jet_MLInputs_2018_SingleMu_PFA2_nVtxlt_20211008_Mixed_PU_PhiRing.csv
+
+data = pd.read_csv(csvpath1)
+data = data.loc[data['PhiRingEnergy']>=10]
+data = data.reset_index()
+del data['index']
+
+A=np.log(data['PhiRingEnergy'])
+B=np.log(data['PFJetEtCorr'])
+C=np.log(data['L1JetDefault_Et'])
+D=np.log(data['L1JetDefault_RawEtPUS'])
+A=pd.DataFrame(A)
+A.columns=['Log(PhiRingEnergy)']
+B=pd.DataFrame(B)
+B.columns=['Log(PFJetEtCorr)']
+C=pd.DataFrame(C)
+C.columns=['Log(L1JetDefault_Et)']
+D=pd.DataFrame(D)
+D.columns=['Log(L1JetDefault_RawEtPUS)']
+frames=[A,B,C,D]
+DF=pd.concat(frames,axis=1)
+frames=[data,DF]
+data=pd.concat(frames,axis=1)
+
+mylist = list(range(1,41))
+x = 28
+list1=mylist[:x] + mylist[x+1:]
+list2 = list(range(1,201))
+
+iEta=[]
+PhiRing=[]
+
+Combination = [(i, j) for i in list1 for j in list2]
+
+for k in range(0,7800):
+    
+    Tuple1=Combination[k]
+    var1=Tuple1[0]
+    var2=Tuple1[1]
+    iEta.append(var1)
+    PhiRing.append(var2)
+
+logPhiRing=np.log(PhiRing)
+df1=pd.DataFrame(iEta)
+df1.columns=['L1JetTowerIEtaAbs']
+df2=pd.DataFrame(PhiRing)
+df2.columns=['PhiRingEnergy']
+df7=pd.DataFrame(logPhiRing)
+df7.columns=['log(PhiRingEnergy)']
+frames=[df1,df2]
+frames_log=[df1,df7]
+newTest=pd.concat(frames,axis=1)
+newTest_log=pd.concat(frames_log,axis=1)
+
+newTestPred=[]
+for i in range(10):
+    test_size = 0.50 
+    trainData, testData = train_test_split(data, 
+                                       test_size=test_size, random_state=i, shuffle=True)
+
+    trainVars = ['L1JetTowerIEtaAbs', 'PhiRingEnergy']
+    params = {'n_estimators': 1000, 'max_depth': 5,'learning_rate': 0.01}
+
+    reg = xgb.XGBRegressor(random_state=0,**params)
+
+    reg.fit(trainData[trainVars], trainData['PFJetEtCorr'])
+
+    testPrediction = reg.predict(testData[trainVars])
+    trainPrediction = reg.predict(trainData[trainVars])
+    newTestPrediction = reg.predict(newTest)
+    newTestPred.append(newTestPrediction)
+
+
+    rmse_test = np.sqrt(MSE(testData['PFJetEtCorr'], testPrediction))
+    rmse_train = np.sqrt(MSE(trainData['PFJetEtCorr'], trainPrediction))
+    error_test = ("RMSE_test=%f")%rmse_test
+    error_train = ("RMSE_train=%f")%rmse_train
+    print(error_test)
+    print(error_train)
+    
+    newTestPredRatio=[]
+for i in range(10):
+    test_size = 0.50 
+    trainData, testData = train_test_split(data, 
+                                       test_size=test_size, random_state=i, shuffle=True)
+
+    trainVars = ['L1JetTowerIEtaAbs', 'PhiRingEnergy']
+    
+    params = {'n_estimators': 1000, 
+              'max_depth': 5,
+              'learning_rate': 0.01}
+
+    reg_ratio = xgb.XGBRegressor(
+        random_state=0,
+        **params)
+
+    A=trainData['PhiRingEnergy']/trainData['PFJetEtCorr']
+    B=testData['PhiRingEnergy']/testData['PFJetEtCorr']
+
+    reg_ratio.fit(trainData[trainVars], A)
+
+    testPrediction_ratio = reg_ratio.predict(testData[trainVars])
+    trainPrediction_ratio = reg_ratio.predict(trainData[trainVars])
+    newTestPrediction = reg_ratio.predict(newTest)
+    newTestPrediction = 1/newTestPrediction
+    newTestPredRatio.append(newTestPrediction)
+
+
+    rmse_test = np.sqrt(MSE(B, testPrediction_ratio))
+    rmse_train = np.sqrt(MSE(A, trainPrediction_ratio))
+    error_test = ("RMSE_test=%f")%rmse_test
+    error_train = ("RMSE_train=%f")%rmse_train
+    print(error_test)
+    print(error_train)
+    
+    newTestPredLog=[]
+for i in range(10):
+    test_size = 0.50 
+    trainData, testData = train_test_split(data, 
+                                       test_size=test_size, random_state=i, shuffle=True)
+
+    trainVars = ['L1JetTowerIEtaAbs', 'Log(PhiRingEnergy)']
+    params = {'n_estimators': 1000, 
+              'max_depth': 5,
+              'learning_rate': 0.01}
+
+    reg_log = xgb.XGBRegressor(
+        random_state=0,
+        **params)
+
+
+    reg_log.fit(trainData[trainVars], trainData['Log(PFJetEtCorr)'])
+
+    testPrediction = reg_log.predict(testData[trainVars])
+    testPrediction_log = np.exp(testPrediction)
+    trainPrediction = reg_log.predict(trainData[trainVars])
+    trainPrediction_log = np.exp(trainPrediction)
+    newTestPrediction_log = reg_log.predict(newTest_log)
+    newTestPredLog.append(newTestPrediction_log)
+
+
+    rmse_test = np.sqrt(MSE(testData['Log(PFJetEtCorr)'], testPrediction_log))
+    rmse_train = np.sqrt(MSE(trainData['Log(PFJetEtCorr)'], trainPrediction_log))
+    error_test = ("RMSE_test=%f")%rmse_test
+    error_train = ("RMSE_train=%f")%rmse_train
+    print(error_test)
+    print(error_train)
+    
+    newTestPredLogRatio=[]
+for i in range(10):
+    test_size = 0.50 
+    trainData, testData = train_test_split(data, 
+                                       test_size=test_size, random_state=i, shuffle=True)
+
+    trainVars = ['L1JetTowerIEtaAbs', 'Log(PhiRingEnergy)']
+    params = {'n_estimators': 1000, 
+              'max_depth': 5,
+              'learning_rate': 0.01}
+    
+    reg_ratio_log = xgb.XGBRegressor(
+    random_state=0,
+    **params)
+
+
+    Al=trainData['Log(PhiRingEnergy)']/trainData['Log(PFJetEtCorr)']
+    B1=testData['Log(PhiRingEnergy)']/testData['Log(PFJetEtCorr)']
+
+    reg_ratio_log.fit(trainData[trainVars], Al)
+
+    testPrediction_ratiol = reg_ratio_log.predict(testData[trainVars])
+    testPrediction_ratio_log = np.exp(testPrediction_ratiol)
+    trainPrediction_ratiol = reg_ratio_log.predict(trainData[trainVars])
+    trainPrediction_ratio_log = np.exp(trainPrediction_ratiol)
+    newTestPred_ratiol = reg_ratio_log.predict(newTest_log)
+    newTestPred_ratio_log = 1/newTestPred_ratiol
+    newTestPredLogRatio.append(newTestPred_ratio_log)
+
+
+    rmse_test = np.sqrt(MSE(B1, testPrediction_ratio_log))
+    rmse_train = np.sqrt(MSE(Al, trainPrediction_ratio_log))
+    error_test = ("RMSE_test=%f")%rmse_test
+    error_train = ("RMSE_train=%f")%rmse_train
+    print(error_test)
+    print(error_train)
+    
+    Df1=pd.DataFrame(np.transpose(newTestPred))
+A=np.mean(Df1,axis=1)
+A=pd.DataFrame(A)
+A.columns=['NewTestPrediction (PF pT)']
+frames=[newTest,A]
+Result1=pd.concat(frames,axis=1)
+
+Df2=pd.DataFrame(np.transpose(newTestPredRatio))
+B=np.mean(Df2,axis=1)
+B=pd.DataFrame(B)
+B.columns=['NewTestPrediction (PhiRing pT/PF pT)']
+frames=[Result1,B]
+Result1=pd.concat(frames,axis=1)
+
+Df3=pd.DataFrame(np.transpose(newTestPredLog))
+C=np.mean(Df3,axis=1)
+C=pd.DataFrame(C)
+C.columns=['NewTestPrediction (log (PF pT))']
+frames=[Result1,C]
+Result1=pd.concat(frames,axis=1)
+
+Df4=pd.DataFrame(np.transpose(newTestPredLogRatio))
+D=np.mean(Df4,axis=1)
+D=pd.DataFrame(D)
+D.columns=['NewTestPrediction log(PhiRing pT)/log(PF pT)']
+frames=[Result1,D]
+Result1=pd.concat(frames,axis=1)
+
+for n in range(1,41):
+    if n==29:
+        continue
+    fin11=Result1.loc[Result1['L1JetTowerIEtaAbs']==n]
+    PhiRingEnergy1=fin11['PhiRingEnergy']
+    x1=PhiRingEnergy1.values
+    LogPhiRing1=np.log(PhiRingEnergy1)
+    Output1=fin11['NewTestPrediction (PF pT)']
+    Output_ratio1=fin11['NewTestPrediction (PhiRing pT/PF pT)']
+    Output_log1=fin11['NewTestPrediction (log (PF pT))']
+    Output_ratio_log1=fin11['NewTestPrediction log(PhiRing pT)/log(PF pT)']
+    
+    pred11=Output1/PhiRingEnergy1
+    y11=pred11.values
+    pred21=Output_ratio1
+    y21=pred21.values
+    pred31=np.exp(Output_log1)/PhiRingEnergy1
+    y31=pred31.values
+    pred41=np.exp(LogPhiRing1*Output_ratio_log1)/PhiRingEnergy1
+    y41=pred41.values
+    
+    y1=[]
+    y2=[]
+    y3=[]
+    y4=[]
+    for i in range(200):
+        if i==0:
+            a=0.3*y11[i]+0.4*(y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.4*(y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.4*(y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.4*(y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i==1:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i==2:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i>=3 and i<=196:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.05*(y11[i-3] + y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.05*(y21[i-3] + y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.05*(y31[i-3] + y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.05*(y41[i-3] + y41[i+3])
+            y4.append(d)
+        if i==197:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i-3])
+            y4.append(d)
+        if i==198:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
+            y4.append(d)
+        if i==199:
+            a=0.3*y11[i]+0.4*(y11[i-1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.4*(y21[i-1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.4*(y31[i-1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.4*(y41[i-1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
+            y4.append(d)
+    
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(8)
+    plt.plot(x1,y1,label='Regressed to PF pT',color='dodgerblue')
+    plt.plot(x1,y2,label='Regressed to PhiRingEnergy pT/PF pT',color='darkorange')
+    plt.plot(x1,y3,label='Regressed to log(PF pT)',color='darkblue')
+    plt.plot(x1,y4,label='Regressed to log(PhiRingEnergy)/log(PF pT)',color='crimson')
+    
+    str1=('PhiRingEnergy (iEta = %d)')%n
+    plt.xlabel(str1)
+    plt.ylabel("PF pt/PhiRing Energy pT")
+    plt.ylim(0.8,2.2)
+    plt.title("PhiRingEnergy >= 10 GeV")
+    plt.legend(fontsize=20)
+    str2= ('Ratio vs PhiRingEnergy (iEta=%d).png')%n
+    plt.savefig(str2)
+    plt.figure().clear()
+    
+    y6=DF['PhiRingEnergy'].values
+    PRE=np.rint(y6)
+    PRE=PRE.astype(int)
+    for i in range(len(y6)):
+        if y6[i]<=15:
+            y71=y6[i]*y1[14]
+            y81=y6[i]*y2[14]
+            y91=y6[i]*y3[14]
+            y101=y6[i]*y4[14]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
+        elif y6[i]>=200:
+            y71=y6[i]*y1[199]
+            y81=y6[i]*y2[199]
+            y91=y6[i]*y3[199]
+            y101=y6[i]*y4[199]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
+        else:
+            y71=y6[i]*y1[PRE[i]-1]
+            y81=y6[i]*y2[PRE[i]-1]
+            y91=y6[i]*y3[PRE[i]-1]
+            y101=y6[i]*y4[PRE[i]-1]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
+            
+ydf1=pd.DataFrame(y7)
+ydf1.columns=['PhiRing*PF Scale']
+ydf2=pd.DataFrame(y8)
+ydf2.columns=['PhiRing*Ratio Scale']
+ydf3=pd.DataFrame(y9)
+ydf3.columns=['PhiRing*Log PF Scale']
+ydf4=pd.DataFrame(y10)
+ydf4.columns=['PhiRing*Log Ratio Scale']
+frames=[ydf1,ydf2,ydf3,ydf4]
+FDF=pd.concat(frames,axis=1)
+
+finalDF=data.drop(columns=['L1JetType','L1Jet9x9_EtSum7PUTowers','Log(PhiRingEnergy)','Log(PFJetEtCorr)','Log(L1JetDefault_Et)'])
+
+Fin=[]
+for n in range(1,41):
+    if n==29:
+        continue
+    A0=finalDF.loc[finalDF['L1JetTowerIEtaAbs']==n]
+    frames=[A0]
+    A1=pd.concat(frames)
+    Fin.append(A1)
+    
+Fin=pd.concat(Fin)
+Fin=Fin.reset_index()
+del Fin['index']
+
+frames=[Fin,FDF]
+Fin=pd.concat(frames,axis=1)
+
+meanL1Jet=[]
+meanL1JetR=[]
+meanPhiRing=[]
+meanPF=[]
+meanRatio=[]
+meanLogPF=[]
+meanLogRatio=[]
+
+resL1Jet=[]
+resL1JetR=[]
+resPhiRing=[]
+resPF=[]
+resRatio=[]
+resLogPF=[]
+resLogRatio=[]
+
+cutoff = 100200
+if cutoff == 2535:
+    fin=Fin.loc[(Fin['PFJetEtCorr']>=25) & (Fin['PFJetEtCorr']<=35)]
+
+if cutoff == 4055:
+    fin=Fin.loc[(Fin['PFJetEtCorr']>=40) & (Fin['PFJetEtCorr']<=55)]
+
+if cutoff == 6090:
+    fin=Fin.loc[(Fin['PFJetEtCorr']>=60) & (Fin['PFJetEtCorr']<=90)]
+
+if cutoff == 100200:
+    fin=Fin.loc[(Fin['PFJetEtCorr']>=100) & (Fin['PFJetEtCorr']<=200)]
+    fin=fin.loc[fin['L1JetTowerIEtaAbs']<=28]
+
+for n in range(1,41):
+    if n==29:
+        continue
+    fin1=fin.loc[fin['L1JetTowerIEtaAbs']==n]
+    PFJet=fin1['PFJetEtCorr'].values
+    L1Jet=fin1['L1JetDefault_Et'].values
+    L1JetR=fin1['L1JetDefault_RawEtPUS'].values
+    PhiRing=fin1['PhiRingEnergy'].values
+    PF=fin1['PhiRing*PF Scale'].values
+    Ratio=fin1['PhiRing*Ratio Scale'].values
+    LogPF=fin1['PhiRing*Log PF Scale'].values
+    LogRatio=fin1['PhiRing*Log Ratio Scale'].values
+    
+    A=L1JetR/PFJet
+    B=np.where(A>=3,3,A)
+    L1R=np.where(B<=-3,-3,B)
+    mean_L1JetR=np.mean(L1R)
+    std_L1JetR=np.std(L1R)
+    res_L1JetR=std_L1JetR/mean_L1JetR
+    meanL1JetR.append(mean_L1JetR)
+    resL1JetR.append(res_L1JetR)
+    
+    C=PhiRing/PFJet
+    D=np.where(C>=3,3,C)
+    Phi=np.where(D<=-3,-3,D)
+    mean_PhiRing=np.mean(Phi)
+    std_PhiRing=np.std(Phi)
+    res_PhiRing=std_PhiRing/mean_PhiRing
+    meanPhiRing.append(mean_PhiRing)
+    resPhiRing.append(res_PhiRing)
+    
+    E=PF/PFJet
+    F=np.where(E>=3,3,E)
+    PF=np.where(F<=-3,-3,F)
+    mean_PF=np.mean(PF)
+    std_PF=np.std(PF)
+    res_PF=std_PF/mean_PF
+    meanPF.append(mean_PF)
+    resPF.append(res_PF)
+    
+    G=Ratio/PFJet
+    H=np.where(G>=3,3,G)
+    Ratio=np.where(H<=-3,-3,H)
+    mean_Ratio=np.mean(Ratio)
+    std_Ratio=np.std(Ratio)
+    res_Ratio=std_Ratio/mean_Ratio
+    meanRatio.append(mean_Ratio)
+    resRatio.append(res_Ratio)
+    
+    I=LogPF/PFJet
+    J=np.where(I>=3,3,I)
+    LPF=np.where(J<=-3,-3,J)
+    mean_LogPF=np.mean(LPF)
+    std_LogPF=np.std(LPF)
+    res_LogPF=std_LogPF/mean_LogPF
+    meanLogPF.append(mean_LogPF)
+    resLogPF.append(res_LogPF)
+    
+    K=LogRatio/PFJet
+    L=np.where(K>=3,3,K)
+    LR=np.where(L<=-3,-3,L)
+    mean_LogRatio=np.mean(LR)
+    std_LogRatio=np.std(LR)
+    res_LogRatio=std_LogRatio/mean_LogRatio
+    meanLogRatio.append(mean_LogRatio)
+    resLogRatio.append(res_LogRatio)
+    
+    M=L1Jet/PFJet
+    N=np.where(M>=3,3,M)
+    L1=np.where(N<=-3,-3,N)
+    mean_L1Jet=np.mean(L1)
+    std_L1Jet=np.std(L1)
+    res_L1Jet=std_L1Jet/mean_L1Jet
+    meanL1Jet.append(mean_L1Jet)
+    resL1Jet.append(res_L1Jet)
+    
+mylist = list(range(1,41))
+x = 28
+y=mylist[:x] + mylist[x+1:]
+
+if cutoff == 2535:
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,meanPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,meanRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,meanLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,meanL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,meanPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,2])
+    plt.title("For 25 GeV <= PF pT <= 35 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Energy Scale")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Energy Scale vs IEta (25-35).png")
+    plt.figure().clear()
+
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,resPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,resRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,resLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,resL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,resPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,0.6])
+    plt.title("For 25 GeV <= PF pT <= 35 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Resolution")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Resolution vs IEta (25-35).png")
+    plt.figure().clear()
+    
+if cutoff == 4055:
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,meanPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,meanRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,meanLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,meanL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,meanPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,2])
+    plt.title("For 40 GeV <= PF pT <= 55 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Energy Scale")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Energy Scale vs IEta (40-55).png")
+    plt.figure().clear()
+
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,resPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,resRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,resLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,resL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,resPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,0.6])
+    plt.title("For 40 GeV <= PF pT <= 55 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Resolution")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Resolution vs IEta (40-55).png")
+    plt.figure().clear()
+
+if cutoff == 6090:
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,meanPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,meanRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,meanLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,meanL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,meanPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,2])
+    plt.title("For 60 GeV <= PF pT <= 90 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Energy Scale")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Energy Scale vs IEta (60-90).png")
+    plt.figure().clear()
+
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,resPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,resRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,resLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,resL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,resPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,0.6])
+    plt.title("For 60 GeV <= PF pT <= 90 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Resolution")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Resolution vs IEta (60-90).png")
+    plt.figure().clear()
+    
+if cutoff == 100200:
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,meanPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,meanRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,meanLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,meanL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,meanL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,meanPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,2])
+    plt.title("For 100 GeV <= PF pT <= 200 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Energy Scale")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Energy Scale vs IEta (100-200).png")
+    plt.figure().clear()
+
+    f = plt.figure()
+    f.set_figwidth(12)
+    f.set_figheight(9)
+    plt.plot(y,resPF,label='BDT Prediction (PhiRing Energy) (Regressed to PF pT)',linewidth=3)
+    plt.plot(y,resRatio,label='BDT Prediction (PhiRing Energy)(Regressed to PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resLogPF,label='BDT Prediction(PhiRing Energy)(Regressed to log(PF pT))')
+    plt.plot(y,resLogRatio,label='BDT Prediction(PhiRing Energy)(Regressed to log(PhiRingEnergy pT/PF pT)')
+    plt.plot(y,resL1Jet,label='L1JetDefault_PUS pT')
+    plt.plot(y,resL1JetR,label='L1JetDefaultRaw_PUS pT (No Layer-2 Scale Factors)')
+    plt.plot(y,resPhiRing,label='PhiRing pT (No Layer-2 Scale Factors)')
+    plt.ylim([0,0.6])
+    plt.title("For 100 GeV <= PF pT <= 200 GeV")
+    plt.xlabel("iEta")
+    plt.ylabel("Resolution")
+    plt.legend(prop={'size': 8})
+    plt.savefig("Resolution vs IEta (100-200).png")
+    plt.figure().clear()
