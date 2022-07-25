@@ -1,0 +1,191 @@
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt 
+import xgboost as xgb
+from numpy import loadtxt
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_curve, auc, accuracy_score
+from sklearn.metrics import mean_squared_error as MSE
+from sklearn.metrics import r2_score as r2
+import pickle
+
+csvpath = 'L1T_Jets_MLInputs_2018_SingleMu_PFA2.csv'
+data = pd.read_csv(csvpath, header = 0)
+
+test_size = 0.50
+randInt = 0 
+trainData, testData = train_test_split(data, random_state=randInt, 
+                                   test_size=test_size, shuffle=False)
+
+trainVars = data.columns.to_list()
+
+trainVars = [x for x in trainVars if x not in ['PFJetEtCorr', 'L1JetType']]
+#   'L1TJetDefault_PUS','L1JetDefault_PU','L1Jet9x9_RawEt','L1Jet9x9_EtSum7PUTowers','L1Jet7x9_RawEt','L1Jet7x9_EtSum7PUTowers','L1Jet5x9_RawEt','L1Jet5x9_EtSum7PUTowers','L1Jet3x9_RawEt','L1Jet3x9_EtSum7PUTowers'
+params = {'n_estimators': 1000, 
+          'max_depth': 5,
+          'learning_rate': 0.01}
+
+reg = xgb.XGBRegressor(
+    random_state=randInt,
+    **params)
+
+reg.fit(trainData[trainVars], trainData['PFJetEtCorr'])
+
+testPrediction = reg.predict(testData[trainVars])
+trainPrediction = reg.predict(trainData[trainVars])
+
+
+rmse = np.sqrt(MSE(testData['PFJetEtCorr'], testPrediction))
+error = ("RMSE=%f")%rmse
+print(error)
+
+rank=reg.feature_importances_
+feat_name=['L1JetTowerIEtaAbs','L1TJetDefault_PUS','L1JetDefault_PU','L1Jet9x9_RawEt','L1Jet9x9_EtSum7PUTowers','L1Jet7x9_RawEt','L1Jet7x9_EtSum7PUTowers','L1Jet5x9_RawEt','L1Jet5x9_EtSum7PUTowers','L1Jet3x9_RawEt','L1Jet3x9_EtSum7PUTowers']
+plt.barh(feat_name,rank)
+xlbl=("Feature Ranking for All Jets (All IEtas)")
+plt.xlabel(xlbl)
+plt.figure().clear()
+rankdf=pd.DataFrame(rank)
+rankdf.index=['L1JetTowerIEtaAbs','L1TJetDefault_PUS','L1JetDefault_PU','L1Jet9x9_RawEt','L1Jet9x9_EtSum7PUTowers','L1Jet7x9_RawEt','L1Jet7x9_EtSum7PUTowers','L1Jet5x9_RawEt','L1Jet5x9_EtSum7PUTowers','L1Jet3x9_RawEt','L1Jet3x9_EtSum7PUTowers']
+print(rankdf)
+
+meanpr=[]
+dpusmean=[]
+meantr=[]
+dpustmean=[]
+sdev=[]
+sdevtr=[]
+res=[]
+restr=[]
+dpussdev=[]
+dpustsdev=[]
+dpusres=[]
+dpustres=[]
+meanout=[]
+sdevout=[]
+resout=[]
+meantrout=[]
+dpusmeanout=[]
+dpustmeanout=[]
+sdevtrout=[]
+dpussdev=[]
+dpustsdev=[]
+dpussdevout=[]
+dpustsdevout=[]
+restrout=[]
+dpusresout=[]
+dpustresout=[]
+rmsetot=[]
+checker = True
+
+testData = testData.reset_index()
+del testData['index']
+trainData = trainData.reset_index()
+del trainData['index']
+
+pred=pd.DataFrame(testPrediction)
+pred.columns=['pred']
+predT=pd.DataFrame(trainPrediction)
+predT.columns=['predT']
+frames=[testData,pred]
+frames1=[trainData,predT]
+pred_all=pd.concat(frames,axis=1)
+predT_all=pd.concat(frames1,axis=1)
+
+if checker:
+    int_pred=pred_all.loc[pred_all['PFJetEtCorr']>=60]
+    pred_all=int_pred.loc[int_pred['PFJetEtCorr']<=90]
+    int_predT=predT_all.loc[predT_all['PFJetEtCorr']>=60]
+    predT_all=int_predT.loc[int_predT['PFJetEtCorr']<=90]
+
+for n in range(1,40):
+    if n==29:
+        continue
+    fin1=pred_all.loc[pred_all['L1JetTowerIEtaAbs']==n]
+    fin2=predT_all.loc[predT_all['L1JetTowerIEtaAbs']==n]
+    PFJet=fin1['PFJetEtCorr']
+    prediction=fin1['pred']
+    test1=prediction/PFJet
+    test2=test1.values
+    pred=pd.DataFrame(test2)
+    pred.columns=['pred']
+    ratio_pred=pred.loc[pred['pred']<=3]
+    test_pred=ratio_pred.values
+    mean_pred=np.mean(test_pred)
+    std_pred=np.std(test_pred)
+    res_pred=std_pred/mean_pred
+    meanpr.append(mean_pred)
+    sdev.append(std_pred)
+    res.append(res_pred)
+    
+    L1Jet_DPUS=fin1['L1JetDefault_EtPUS']
+    test3=L1Jet_DPUS/PFJet
+    test4=test3.values
+    dpus=pd.DataFrame(test4)
+    dpus.columns=['dpus']
+    dpus_ratio=dpus.loc[dpus['dpus']<=3]
+    dpus_test=dpus_ratio.values
+    mean_dpus=np.mean(dpus_test)
+    std_dpus=np.std(dpus_test)
+    res_dpus=std_dpus/mean_dpus
+    dpusmean.append(mean_dpus)
+    dpussdev.append(std_dpus)
+    dpusres.append(res_dpus)
+    
+    
+    PFJet_Training=fin2['PFJetEtCorr']
+    L1Jet_DPUS_Training=fin2['L1JetDefault_EtPUS']
+    train1=L1Jet_DPUS_Training/PFJet_Training
+    train2=train1.values
+    dpust=pd.DataFrame(train2)
+    dpust.columns=['dpust']
+    dpust_ratio=dpust.loc[dpust['dpust']<=3]
+    dpus_train=dpust_ratio.values
+    mean_dpust=np.mean(dpus_train)
+    std_dpust=np.std(dpus_train)
+    res_dpust=std_dpust/mean_dpust
+    dpustmean.append(mean_dpust)
+    dpustsdev.append(std_dpust)
+    dpustres.append(res_dpust)
+
+    predictionT=fin2['predT']
+    train3=predictionT/PFJet_Training
+    train4=train3.values
+    pred_training=pd.DataFrame(train4)
+    pred_training.columns=['pred_training']
+    ratio_pred_training=pred_training.loc[pred_training['pred_training']<=3]
+    outlier_training=pred_training.loc[pred_training['pred_training']>=3]
+    train_pred=ratio_pred_training.values
+    mean_train_pred=np.mean(train_pred)
+    std_train_pred=np.std(train_pred)
+    res_train_pred=std_train_pred/mean_train_pred
+    meantr.append(mean_train_pred)
+    sdevtr.append(std_train_pred)
+    restr.append(res_train_pred)
+    
+mylist = list(range(1,40))
+x = 28
+y=mylist[:x] + mylist[x+1:]
+plt.plot(y,meanpr,label='Prediction from BDT(Test)',color='dodgerblue')
+plt.plot(y,meantr,label='Prediction from BDT(Training)',color='dodgerblue',ls='--')
+plt.plot(y,dpusmean,label='L1TJetDefault_PUS(Test)',color='darkorange')
+plt.plot(y,dpustmean,label='L1TJetDefault_PUS(Training)',color='darkorange',ls='--')
+# plt.ylim([0.80,1.20])
+plt.xlabel("IEta (60<PF Jet pT<90)")
+plt.ylabel("Mean = L1T Jet pT/PF Jet pT")
+plt.legend()
+plt.savefig("Mean vs IEta.png")
+plt.figure().clear()
+
+plt.plot(y,res,label='Prediction from BDT(Test)',color='dodgerblue')
+plt.plot(y,dpusres,label='L1TJetDefault_PUS(Test)',color='darkorange')
+plt.plot(y,restr,label='Prediction from BDT(Training)',color='dodgerblue',ls='--')
+plt.plot(y,dpustres,label='L1TJetDefault_PUS(Training)',color='darkorange',ls='--')
+# plt.ylim([0,0.7])
+plt.xlabel("IEta (60<PF Jet pT<90)")
+plt.ylabel("Width/Mean (Width=Sqrt(Variance))")
+plt.legend()
+plt.savefig("Resolution vs IEta.png")
+plt.figure().clear()
+
