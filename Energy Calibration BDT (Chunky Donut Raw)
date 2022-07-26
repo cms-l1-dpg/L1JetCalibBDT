@@ -15,6 +15,58 @@ from sklearn.metrics import r2_score as r2
 csvpath1 = 'L1T_Jet_MLInputs_2018_SingleMu_PFA2_nVtxlt_20211008 (Mixed PU) (PhiRing).csv' #This file is available in the following link
 #/afs/cern.ch/user/s/syhasan/public/data_files/L1T_Jet_MLInputs_2018_SingleMu_PFA2_nVtxlt_20211008_Mixed_PU_PhiRing.csv
 
+data = pd.read_csv(csvpath1)
+data = data.loc[data['PhiRingEnergy']>=10]
+data = data.reset_index()
+del data['index']
+
+A=np.log(data['PhiRingEnergy'])
+B=np.log(data['PFJetEtCorr'])
+C=np.log(data['L1JetDefault_Et'])
+D=np.log(data['L1JetDefault_RawEtPUS'])
+A=pd.DataFrame(A)
+A.columns=['Log(PhiRingEnergy)']
+B=pd.DataFrame(B)
+B.columns=['Log(PFJetEtCorr)']
+C=pd.DataFrame(C)
+C.columns=['Log(L1JetDefault_Et)']
+D=pd.DataFrame(D)
+D.columns=['Log(L1JetDefault_RawEtPUS)']
+frames=[A,B,C,D]
+DF=pd.concat(frames,axis=1)
+frames=[data,DF]
+data=pd.concat(frames,axis=1)
+
+mylist = list(range(1,41))
+x = 28
+list1=mylist[:x] + mylist[x+1:]
+list2 = list(range(1,201))
+
+iEta=[]
+PhiRing=[]
+
+Combination = [(i, j) for i in list1 for j in list2]
+
+for k in range(0,7800):
+    
+    Tuple1=Combination[k]
+    var1=Tuple1[0]
+    var2=Tuple1[1]
+    iEta.append(var1)
+    PhiRing.append(var2)
+
+logPhiRing=np.log(PhiRing)
+df1=pd.DataFrame(iEta)
+df1.columns=['L1JetTowerIEtaAbs']
+df2=pd.DataFrame(PhiRing)
+df2.columns=['PhiRingEnergy']
+df7=pd.DataFrame(logPhiRing)
+df7.columns=['log(PhiRingEnergy)']
+frames=[df1,df2]
+frames_log=[df1,df7]
+newTest=pd.concat(frames,axis=1)
+newTest_log=pd.concat(frames_log,axis=1)
+
 newTestPredL1R=[]
 for i in range(10):
     test_size = 0.50 
