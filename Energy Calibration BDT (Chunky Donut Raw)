@@ -229,7 +229,12 @@ D.columns=['NewTestPrediction log(L1Jet_Raw pT)/log(PF pT)']
 frames=[Result3,D]
 Result3=pd.concat(frames,axis=1)
 
-for n in range(1,41):
+y7=[]
+y8=[]
+y9=[]
+y10=[]
+
+for n in range(1,42):
     if n==29:
         continue
     fin11=Result3.loc[Result3['L1JetTowerIEtaAbs']==n]
@@ -249,128 +254,124 @@ for n in range(1,41):
     pred41=np.exp(LogL1RJet1*Output_ratio_log1)/L1RJet1
     y41=pred41.values
     
-y1=[]
-y2=[]
-y3=[]
-y4=[]
-y7=[]
-y8=[]
-y9=[]
-y10=[]
-for i in range(200):
-    if i==0:
-        a=0.3*y11[i]+0.4*(y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
-        y1.append(a)
-        b=0.3*y21[i]+0.4*(y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
-        y2.append(b)
-        c=0.3*y31[i]+0.4*(y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
-        y3.append(c)
-        d=0.3*y41[i]+0.4*(y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
-        y4.append(d)
-    if i==1:
-        a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
-        y1.append(a)
-        b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
-        y2.append(b)
-        c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
-        y3.append(c)
-        d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
-        y4.append(d)
-    if i==2:
-        a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i+3])
-        y1.append(a)
-        b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i+3])
-        y2.append(b)
-        c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i+3])
-        y3.append(c)
-        d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i+3])
-        y4.append(d)
-    if i>=3 and i<=196:
-        a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.05*(y11[i-3] + y11[i+3])
-        y1.append(a)
-        b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.05*(y21[i-3] + y21[i+3])
-        y2.append(b)
-        c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.05*(y31[i-3] + y31[i+3])
-        y3.append(c)
-        d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.05*(y41[i-3] + y41[i+3])
-        y4.append(d)
-    if i==197:
-        a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i-3])
-        y1.append(a)
-        b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i-3])
-        y2.append(b)
-        c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i-3])
-        y3.append(c)
-        d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i-3])
-        y4.append(d)
-    if i==198:
-        a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
-        y1.append(a)
-        b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
-        y2.append(b)
-        c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
-        y3.append(c)
-        d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
-        y4.append(d)
-    if i==199:
-        a=0.3*y11[i]+0.4*(y11[i-1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
-        y1.append(a)
-        b=0.3*y21[i]+0.4*(y21[i-1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
-        y2.append(b)
-        c=0.3*y31[i]+0.4*(y31[i-1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
-        y3.append(c)
-        d=0.3*y41[i]+0.4*(y41[i-1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
-        y4.append(d)
+    y1=[]
+    y2=[]
+    y3=[]
+    y4=[]
+    for i in range(200):
+        if i==0:
+            a=0.3*y11[i]+0.4*(y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.4*(y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.4*(y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.4*(y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i==1:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i==2:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i+3])
+            y4.append(d)
+        if i>=3 and i<=196:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.05*(y11[i-3] + y11[i+3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.05*(y21[i-3] + y21[i+3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.05*(y31[i-3] + y31[i+3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.05*(y41[i-3] + y41[i+3])
+            y4.append(d)
+        if i==197:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.1*(y11[i-2] + y11[i+2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.1*(y21[i-2] + y21[i+2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.1*(y31[i-2] + y31[i+2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.1*(y41[i-2] + y41[i+2]) + 0.1*(y41[i-3])
+            y4.append(d)
+        if i==198:
+            a=0.3*y11[i]+0.2*(y11[i-1] + y11[i+1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.2*(y21[i-1] + y21[i+1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.2*(y31[i-1] + y31[i+1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.2*(y41[i-1] + y41[i+1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
+            y4.append(d)
+        if i==199:
+            a=0.3*y11[i]+0.4*(y11[i-1]) + 0.2*(y11[i-2]) + 0.1*(y11[i-3])
+            y1.append(a)
+            b=0.3*y21[i]+0.4*(y21[i-1]) + 0.2*(y21[i-2]) + 0.1*(y21[i-3])
+            y2.append(b)
+            c=0.3*y31[i]+0.4*(y31[i-1]) + 0.2*(y31[i-2]) + 0.1*(y31[i-3])
+            y3.append(c)
+            d=0.3*y41[i]+0.4*(y41[i-1]) + 0.2*(y41[i-2]) + 0.1*(y41[i-3])
+            y4.append(d)
 
-f = plt.figure()
-f.set_figwidth(9)
-f.set_figheight(6)
-plt.plot(x1,y1,label='Regressed to PF pT',color='dodgerblue')
-plt.plot(x1,y2,label='Regressed to L1Jet_Raw pT/PF pT',color='darkorange')
-plt.plot(x1,y3,label='Regressed to log(PF pT)',color='darkblue')
-plt.plot(x1,y4,label='Regressed to log(L1Jet_Raw pT)/log(PF pT)',color='crimson')
+    f = plt.figure()
+    f.set_figwidth(9)
+    f.set_figheight(6)
+    plt.plot(x1,y1,label='Regressed to PF pT',color='dodgerblue')
+    plt.plot(x1,y2,label='Regressed to L1Jet_Raw pT/PF pT',color='darkorange')
+    plt.plot(x1,y3,label='Regressed to log(PF pT)',color='darkblue')
+    plt.plot(x1,y4,label='Regressed to log(L1Jet_Raw pT)/log(PF pT)',color='crimson')
 
-str1=('L1Jet pT (iEta = %d)')%n
-plt.xlabel(str1)
-plt.ylabel("PF pt/L1Jet pT")
-plt.ylim(0,2.2)
-plt.title("PhiRingEnergy >= 10 GeV")
-plt.legend()
-str2= ('Ratio vs L1Jet_Raw pT (iEta=%d).png')%n
-plt.savefig(str2)
-plt.figure().clear()
+    str1=('L1Jet pT (iEta = %d)')%n
+    plt.xlabel(str1)
+    plt.ylabel("PF pt/L1Jet pT")
+    plt.ylim(0,2.2)
+    plt.title("PhiRingEnergy >= 10 GeV")
+    plt.legend()
+    str2= ('Ratio vs L1Jet_Raw pT (iEta=%d).png')%n
+    plt.savefig(str2)
+    plt.figure().clear()
 
-y6=DF['L1JetDefault_RawEtPUS'].values
-PRE=np.rint(y6)
-PRE=PRE.astype(int)
-for i in range(len(y6)):
-    if y6[i]<=15:
-        y71=y6[i]*y1[14]
-        y81=y6[i]*y2[14]
-        y91=y6[i]*y3[14]
-        y101=y6[i]*y4[14]
-        y7.append(y71)
-        y8.append(y81)
-        y9.append(y91)
-        y10.append(y101)
-    elif y6[i]>=200:
-        y71=y6[i]*y1[199]
-        y81=y6[i]*y2[199]
-        y91=y6[i]*y3[199]
-        y101=y6[i]*y4[199]
-        y7.append(y71)
-        y8.append(y81)
-        y9.append(y91)
-        y10.append(y101)
-    else:
-        y71=y6[i]*y1[PRE[i]-1]
-        y81=y6[i]*y2[PRE[i]-1]
-        y91=y6[i]*y3[PRE[i]-1]
-        y101=y6[i]*y4[PRE[i]-1]
-        y7.append(y71)
-        y8.append(y81)
-        y9.append(y91)
-        y10.append(y101)
+    y6=DF['L1JetDefault_RawEtPUS'].values
+    PRE=np.rint(y6)
+    PRE=PRE.astype(int)
+    for i in range(len(y6)):
+        if y6[i]<=15:
+            y71=y6[i]*y1[14]
+            y81=y6[i]*y2[14]
+            y91=y6[i]*y3[14]
+            y101=y6[i]*y4[14]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
+        elif y6[i]>=200:
+            y71=y6[i]*y1[199]
+            y81=y6[i]*y2[199]
+            y91=y6[i]*y3[199]
+            y101=y6[i]*y4[199]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
+        else:
+            y71=y6[i]*y1[PRE[i]-1]
+            y81=y6[i]*y2[PRE[i]-1]
+            y91=y6[i]*y3[PRE[i]-1]
+            y101=y6[i]*y4[PRE[i]-1]
+            y7.append(y71)
+            y8.append(y81)
+            y9.append(y91)
+            y10.append(y101)
  
 ydf1=pd.DataFrame(y7)
 ydf1.columns=['L1Jet_Raw*PF Scale']
